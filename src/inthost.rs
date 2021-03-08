@@ -450,49 +450,6 @@ pub(crate) fn wapc_host_callback(
     }
 }
 
-pub(crate) fn fetch_oci_bytes(img: &str) -> Result<Vec<u8>> {
-    let cfg = oci_distribution::client::ClientConfig::default();
-    let mut c = oci_distribution::Client::new(cfg);
-
-    let img = oci_distribution::Reference::from_str(img).map_err(|e| {
-        crate::errors::new(crate::errors::ErrorKind::MiscHost(format!(
-            "Failed to parse OCI distribution reference: {}",
-            e
-        )))
-    })?;
-    let auth = if let Ok(u) = std::env::var(OCI_VAR_USER) {
-        if let Ok(p) = std::env::var(OCI_VAR_PASSWORD) {
-            oci_distribution::secrets::RegistryAuth::Basic(u, p)
-        } else {
-            oci_distribution::secrets::RegistryAuth::Anonymous
-        }
-    } else {
-        oci_distribution::secrets::RegistryAuth::Anonymous
-    };
-    let imgdata: Result<oci_distribution::client::ImageData> =
-        tokio::runtime::Runtime::new().unwrap().block_on(async {
-            c.pull_image(&img, &auth)
-                .await
-                .map_err(|e| format!("{}", e).into())
-        });
-
-    match imgdata {
-        Ok(imgdata) => Ok(imgdata.content),
-        Err(e) => {
-            error!("Failed to fetch OCI bytes: {}", e);
-            Err(crate::errors::new(crate::errors::ErrorKind::MiscHost(
-                "Failed to fetch OCI bytes".to_string(),
-            )))
-        }
-    }
-}
-
-pub(crate) fn fetch_provider_archive(img: &str) -> Result<ProviderArchive> {
-    let bytes = fetch_oci_bytes(img)?;
-    ProviderArchive::try_load(&bytes)
-        .map_err(|e| format!("Failed to load provider archive: {}", e).into())
-}
-
 fn invocation_from_callback(
     hostkey: &KeyPair,
     origin: &str,
@@ -624,49 +581,6 @@ pub(crate) fn detect_core_host_labels() -> HashMap<String, String> {
           std::env::consts::FAMILY,
     );
     hm
-}
-
-pub(crate) fn fetch_actor(actor_id: &str) -> Result<crate::actor::Actor> {
-    let vec = crate::inthost::fetch_oci_bytes(actor_id)?;
-
-    crate::actor::Actor::from_slice(&vec)
-}
-
-pub(crate) fn fetch_provider(
-    provider_ref: &str,
-    binding_name: &str,
-    labels: Arc<RwLock<HashMap<String, String>>>,
-) -> Result<(
-    crate::capability::NativeCapability,
-    Claims<wascap::jwt::CapabilityProvider>,
-)> {
-    use std::fs::File;
-    use std::io::Write;
-
-    let par = crate::inthost::fetch_provider_archive(provider_ref)?;
-    let lock = labels.read().unwrap();
-    let target = format!("{}-{}", lock[CORELABEL_ARCH], lock[CORELABEL_OS]);
-    let v = par.target_bytes(&target);
-    if let Some(v) = v {
-        let path = std::env::temp_dir();
-        let path = path.join(target);
-        {
-            let mut tf = File::create(&path)?;
-            tf.write_all(&v)?;
-        }
-        let nc = NativeCapability::from_file(path, Some(binding_name.to_string()))?;
-        if let Some(c) = par.claims() {
-            Ok((nc, c))
-        } else {
-            Err(format!(
-                "No embedded claims found in provider archive for {}",
-                provider_ref
-            )
-            .into())
-        }
-    } else {
-        Err(format!("No binary found in provider archive for {}", target).into())
-    }
 }
 
 #[cfg(test)]

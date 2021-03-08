@@ -108,7 +108,6 @@ pub use wapc::WasiParams;
 
 pub type SubjectClaimsPair = (String, Claims<wascap::jwt::Actor>);
 
-use crate::inthost::fetch_oci_bytes;
 use bus::{get_namespace_prefix, MessageBus};
 use crossbeam::Sender;
 #[cfg(feature = "lattice")]
@@ -384,17 +383,6 @@ impl Host {
         self.add_actor_imgref(actor, None)
     }
 
-    /// Adds an actor to the host by attempting to retrieve it from an OCI
-    /// registry. This function takes an image reference as an argument, e.g.
-    /// myregistry.mycloud.io/actor:v1
-    /// If OCI credentials are supplied in environment variables, those will be used.
-    pub fn add_actor_from_registry(&self, image: &str) -> Result<()> {
-        let bytes = inthost::fetch_oci_bytes(image)?;
-
-        self.add_actor_imgref(Actor::from_slice(&bytes)?, Some(image.to_string()))?;
-        Ok(())
-    }
-
     /// Adds a portable capability provider (e.g. a WASI actor) to the waSCC host. Portable capability providers adhere
     /// to the same contract as native capability providers, but they are implemented as "high-privilege WASM" modules
     /// via WASI. Today, there is very little a WASI-based capability provider can do, but in the near future when
@@ -494,29 +482,6 @@ impl Host {
         )?;
         wg.wait();
         Ok(())
-    }
-
-    /// Adds a native capability provider plugin to the host runtime by pulling the library from a provider archive
-    /// stored in an OCI-compliant registry. This file will be stored in the operating system's designated temporary
-    /// directory after being downloaded.
-    pub fn add_native_capability_from_registry(
-        &self,
-        image_ref: &str,
-        binding_name: Option<String>,
-    ) -> Result<()> {
-        let b = binding_name.unwrap_or("default".to_string());
-        match crate::inthost::fetch_provider(image_ref, &b, self.labels.clone()) {
-            Ok((prov, claims)) => {
-                self.add_native_capability(prov)?;
-                // Only write to the image map if the above add function succeeds
-                self.image_map
-                    .write()
-                    .unwrap()
-                    .insert(image_ref.to_string(), claims.subject.to_string());
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
     }
 
     /// Removes a native capability provider plugin from the waSCC runtime
@@ -747,7 +712,7 @@ impl Host {
         if std::path::Path::new(actor).exists() {
             self.add_actor(Actor::from_file(&actor)?)
         } else {
-            self.add_actor_from_registry(actor)
+            Err(errors::new(errors::ErrorKind::IO(std::io::ErrorKind::NotFound.into())))
         }
     }
 

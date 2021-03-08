@@ -40,7 +40,6 @@ rand = "0.7.3"
 env_logger = "0.7.1"
 ring = "0.16.15"
 data-encoding = "2.3.0"
-oci-distribution = "0.4.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 futures = "0.3.6"
 provider-archive = "0.1.0"
