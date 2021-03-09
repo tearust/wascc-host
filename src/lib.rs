@@ -142,25 +142,11 @@ pub struct WasccHost {
     bindings: Arc<RwLock<BindingsList>>,
     caps: Arc<RwLock<HashMap<router::RouteKey, CapabilityDescriptor>>>,
     middlewares: Arc<RwLock<Vec<Box<dyn Middleware>>>>,
-    #[cfg(feature = "gantry")]
-    gantry_client: Arc<RwLock<Option<gantryclient::Client>>>,
 }
 
 impl WasccHost {
     /// Creates a new waSCC runtime host
     pub fn new() -> Self {
-        #[cfg(feature = "gantry")]
-        let host = WasccHost {
-            claims: Arc::new(RwLock::new(HashMap::new())),
-            router: Arc::new(RwLock::new(Router::default())),
-            plugins: Arc::new(RwLock::new(PluginManager::default())),
-            auth_hook: Arc::new(RwLock::new(None)),
-            bindings: Arc::new(RwLock::new(vec![])),
-            caps: Arc::new(RwLock::new(HashMap::new())),
-            middlewares: Arc::new(RwLock::new(vec![])),
-            gantry_client: Arc::new(RwLock::new(None)),
-        };
-        #[cfg(not(feature = "gantry"))]
         let host = WasccHost {
             claims: Arc::new(RwLock::new(HashMap::new())),
             router: Arc::new(RwLock::new(Router::default())),
@@ -207,43 +193,6 @@ impl WasccHost {
         )?;
         wg.wait();
         Ok(())
-    }
-
-    /// Adds an actor to the host by looking it up in a Gantry repository, downloading
-    /// the signed module bytes, and adding them to the host
-    #[cfg(feature = "gantry")]
-    pub fn add_actor_from_gantry(&self, actor: &str) -> Result<()> {
-        {
-            let lock = self.gantry_client.read().unwrap();
-            if lock.as_ref().is_none() {
-                return Err(errors::new(errors::ErrorKind::MiscHost(
-                    "No gantry client configured".to_string(),
-                )));
-            }
-        }
-        use crossbeam_channel::unbounded;
-        let (s, r) = unbounded();
-        let bytevec = Arc::new(RwLock::new(Vec::new()));
-        let b = bytevec.clone();
-        let _ack = self
-            .gantry_client
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .download_actor(actor, move |chunk| {
-                bytevec
-                    .write()
-                    .unwrap()
-                    .extend_from_slice(&chunk.chunk_bytes);
-                if chunk.sequence_no == chunk.total_chunks {
-                    s.send(true).unwrap();
-                }
-                Ok(())
-            });
-        let _ = r.recv().unwrap();
-        let vec = b.read().unwrap();
-        self.add_actor(Actor::from_bytes(vec.clone())?)
     }
 
     /// Adds a portable capability provider (e.g. a WASI actor) to the waSCC host
@@ -409,15 +358,6 @@ impl WasccHost {
         }
     }
 
-    /// Configure the Gantry client connection information to be used when actors
-    /// are loaded remotely via `Actor::from_gantry`
-    #[cfg(feature = "gantry")]
-    pub fn configure_gantry(&self, nats_urls: Vec<String>, jwt: &str, seed: &str) -> Result<()> {
-        *self.gantry_client.write().unwrap() =
-            Some(gantryclient::Client::new(nats_urls, jwt, seed));
-        Ok(())
-    }
-
     /// Invoke an operation handler on an actor directly. The caller is responsible for
     /// knowing ahead of time if the given actor supports the specified operation.
     pub fn call_actor(&self, actor: &str, operation: &str, msg: &[u8]) -> Result<Vec<u8>> {
@@ -449,10 +389,6 @@ impl WasccHost {
     #[cfg(feature = "manifest")]
     pub fn apply_manifest(&self, manifest: HostManifest) -> Result<()> {
         for actor in manifest.actors {
-            #[cfg(feature = "gantry")]
-            self.add_actor_gantry_first(&actor)?;
-
-            #[cfg(not(feature = "gantry"))]
             self.add_actor(Actor::from_file(&actor)?)?;
         }
         for cap in manifest.capabilities {
@@ -468,16 +404,6 @@ impl WasccHost {
             )?;
         }
         Ok(())
-    }
-
-    #[cfg(feature = "gantry")]
-    fn add_actor_gantry_first(&self, actor: &str) -> Result<()> {
-        if actor.len() == 56 && actor.starts_with('M') {
-            // This is an actor's public subject
-            self.add_actor_from_gantry(actor)
-        } else {
-            self.add_actor(Actor::from_file(&actor)?)
-        }
     }
 
     /// Returns the list of actors registered in the host
