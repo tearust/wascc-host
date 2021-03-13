@@ -52,6 +52,8 @@ default = []
 manifest = ["serde", "serde_yaml", "serde_json", "envmnt"]
 bin = ["structopt"]
 prometheus_middleware = ["prometheus", "hyper", "tokio"]
+static = []
+nitro = ["static"]
 
 [[bin]]
 name = "wascc-host"
