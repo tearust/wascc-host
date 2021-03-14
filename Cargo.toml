@@ -34,7 +34,7 @@ log = "0.4.8"
 rand = "0.7.3"
 env_logger = "0.7.1"
 
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { path = "../uuid", features = ["serde", "v4"] }
 
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_yaml = { version = "0.8.12", optional = true }
@@ -53,7 +53,10 @@ manifest = ["serde", "serde_yaml", "serde_json", "envmnt"]
 bin = ["structopt"]
 prometheus_middleware = ["prometheus", "hyper", "tokio"]
 static = []
-nitro = ["static"]
+nitro = [
+    "static",
+    "uuid/nitro"
+]
 
 [[bin]]
 name = "wascc-host"

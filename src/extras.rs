@@ -40,7 +40,10 @@ impl ExtrasCapabilityProvider {
         _actor: &str,
         _msg: GeneratorRequest,
     ) -> Result<Vec<u8>, Box<dyn Error>> {
+        #[cfg(not(feature = "nitro"))]
         let uuid = Uuid::new_v4();
+        #[cfg(feature = "nitro")]
+        let id = format!("{}", Uuid::new());
         let result = GeneratorResult {
             guid: Some(format!("{}", uuid)),
             random_number: 0,

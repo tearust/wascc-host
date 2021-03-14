@@ -414,10 +414,11 @@ pub enum InvocationTarget {
 
 impl Invocation {
     pub fn new(origin: String, target: InvocationTarget, op: &str, msg: Vec<u8>) -> Invocation {
-        #[cfg(not(feature = "static"))]
+        #[cfg(not(feature = "nitro"))]
         let id = format!("{}", Uuid::new_v4());
-        #[cfg(feature = "static")]
-        let id = "aaee0bb0-d2ec-47f9-ae70-6f38d83ccf56".to_string(); // todo: replace with nsm
+        #[cfg(feature = "nitro")]
+        let id = format!("{}", Uuid::new());
+        info!("uuid is: {}", &id);
         Invocation {
             origin,
             target,
