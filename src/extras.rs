@@ -43,7 +43,7 @@ impl ExtrasCapabilityProvider {
         #[cfg(not(feature = "nitro"))]
         let uuid = Uuid::new_v4();
         #[cfg(feature = "nitro")]
-        let id = format!("{}", Uuid::new());
+        let uuid = format!("{}", Uuid::new());
         let result = GeneratorResult {
             guid: Some(format!("{}", uuid)),
             random_number: 0,
