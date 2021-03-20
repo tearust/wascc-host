@@ -105,6 +105,7 @@ mod dispatch;
 pub mod errors;
 mod extras;
 mod inthost;
+pub mod native_host;
 
 #[cfg(feature = "manifest")]
 mod manifest;

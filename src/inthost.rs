@@ -418,7 +418,6 @@ impl Invocation {
         let id = format!("{}", Uuid::new_v4());
         #[cfg(feature = "nitro")]
         let id = format!("{}", Uuid::new());
-        info!("uuid is: {}", &id);
         Invocation {
             origin,
             target,
