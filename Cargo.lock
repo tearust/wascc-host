@@ -2640,8 +2640,6 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dd9985201ceed55db8e8db57b8c42c021aa3d0e5d8ec376d488ef5a3062efbd"
 dependencies = [
  "log",
  "rmp-serde",
