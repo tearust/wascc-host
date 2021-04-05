@@ -27,7 +27,6 @@ crossbeam-utils = "^0.7.0"
 prometheus = { version = "0.9", features = ["push"], optional = true }
 hyper = { version = "0.13", optional = true }
 tokio = { version = "0.2", features = ["macros"], optional = true }
-wascap = "0.6.0"
 log = "0.4.8"
 rand = "0.7.3"
 env_logger = "0.7.1"
@@ -41,12 +40,15 @@ structopt = { version = "0.3.14", optional = true }
 
 wapc = { git = "https://github.com/tearust/wapc-rust", branch = "nitro" }
 wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "nitro" }
+wascap = { git = "https://github.com/tearust/wascap", branch = "nitro" }
 uuid = { git = "https://github.com/tearust/uuid", features = ["serde", "v4"] }
 
 [patch.'https://github.com/tearust/wapc-rust']
 wapc = { path = "../wapc-rust" }
 [patch.'https://github.com/tearust/wascc-codec']
 wascc-codec = { path = "../wascc-codec" }
+[patch.'https://github.com/tearust/wascap']
+wascap = { path = "../wascap"}
 [patch.'https://github.com/tearust/uuid']
 uuid = { path = "../uuid", features = ["serde", "v4"] }
 
