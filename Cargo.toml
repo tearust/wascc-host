@@ -32,16 +32,23 @@ log = "0.4.8"
 rand = "0.7.3"
 env_logger = "0.7.1"
 
-wapc = { path = "../wapc-rust" }
-wascc-codec = { path = "../wascc-codec" }
-uuid = { path = "../uuid", features = ["serde", "v4"] }
-
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_yaml = { version = "0.8.12", optional = true }
 serde_json = { version = "1.0", optional = true }
 envmnt = { version = "0.8.2", optional = true }
 
 structopt = { version = "0.3.14", optional = true }
+
+wapc = { git = "https://github.com/tearust/wapc-rust", branch = "nitro" }
+wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "nitro" }
+uuid = { git = "https://github.com/tearust/uuid", features = ["serde", "v4"] }
+
+[patch.'https://github.com/tearust/wapc-rust']
+wapc = { path = "../wapc-rust" }
+[patch.'https://github.com/tearust/wascc-codec']
+wascc-codec = { path = "../wascc-codec" }
+[patch.'https://github.com/tearust/uuid']
+uuid = { path = "../uuid", features = ["serde", "v4"] }
 
 [dev-dependencies]
 reqwest = { version = "0.10", features = ["blocking"] }
