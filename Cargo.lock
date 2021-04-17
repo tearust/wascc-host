@@ -2566,6 +2566,7 @@ dependencies = [
 [[package]]
 name = "uuid"
 version = "0.8.1"
+source = "git+https://github.com/tearust/uuid#7bafb1a0497a0267a3de1aa54246d9660e314f56"
 dependencies = [
  "getrandom 0.2.2",
  "nsm-io",
@@ -2610,6 +2611,7 @@ dependencies = [
 [[package]]
 name = "wapc"
 version = "0.7.2"
+source = "git+https://github.com/tearust/wapc-rust?branch=nitro#48a011b41f14f16d80da76dbefcd2d9cdfcbfd20"
 dependencies = [
  "anyhow",
  "env_logger 0.7.1",
@@ -2625,6 +2627,7 @@ dependencies = [
 [[package]]
 name = "wascap"
 version = "0.5.2"
+source = "git+https://github.com/tearust/wascap?branch=nitro#ee86e400e984e5a10d6e17644ecfa516bf3e4483"
 dependencies = [
  "base64 0.13.0",
  "chrono",
@@ -2645,6 +2648,7 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
+source = "git+https://github.com/tearust/wascc-codec?branch=nitro#e7b454e4dd37065f65e252c167a2c22d5dc644c0"
 dependencies = [
  "log",
  "rmp-serde",
