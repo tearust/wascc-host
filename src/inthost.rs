@@ -414,16 +414,13 @@ pub enum InvocationTarget {
 
 impl Invocation {
     pub fn new(origin: String, target: InvocationTarget, op: &str, msg: Vec<u8>) -> Invocation {
-        #[cfg(not(feature = "nitro"))]
         let id = format!("{}", Uuid::new_v4());
-        #[cfg(feature = "nitro")]
-        let id = format!("{}", Uuid::new());
         Invocation {
             origin,
             target,
             operation: op.to_string(),
             msg,
-            id ,
+            id,
         }
     }
 }
