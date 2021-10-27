@@ -39,9 +39,9 @@ envmnt = { version = "0.8.2", optional = true }
 structopt = { version = "0.3.14", optional = true }
 
 wapc = { git = "https://github.com/tearust/wapc-rust", branch = "nitro" }
-wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "nitro" }
+wascc-codec = { git = "https://github.com/tearust/wascc-codec", rev = "e7b454e" }
 wascap = { git = "https://github.com/tearust/wascap", branch = "nitro" }
-uuid = { git = "https://github.com/tearust/uuid", features = ["serde", "v4"] }
+uuid = { version = "0.8", features = ["serde", "v4"] }
 
 [dev-dependencies]
 reqwest = { version = "0.10", features = ["blocking"] }
@@ -55,7 +55,6 @@ prometheus_middleware = ["prometheus", "hyper", "tokio"]
 static = []
 nitro = [
     "static",
-    "uuid/nitro"
 ]
 
 [[bin]]
