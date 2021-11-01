@@ -486,7 +486,12 @@ fn host_callback(
             // This is an actor-to-actor call
             match router.read().unwrap().get_route(ACTOR_BINDING, &subject) {
                 Some(entry) => match entry.invoke(inv.clone()) {
-                    Ok(inv_r) => Ok(inv_r.msg),
+                    Ok(inv_r) => match inv_r.error {
+                        Some(err) => Err(Box::new(errors::new(
+                            errors::ErrorKind::HostCallFailure(err.into()),
+                        ))),
+                        None => Ok(inv_r.msg),
+                    },
                     Err(e) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
                         e.into(),
                     )))),
@@ -497,7 +502,12 @@ fn host_callback(
         InvocationTarget::Capability { .. } => {
             // This is a standard actor-to-host call
             match middleware::invoke_capability(middlewares, plugins.clone(), router, inv.clone()) {
-                Ok(inv_r) => Ok(inv_r.msg),
+                Ok(inv_r) => match inv_r.error {
+                    Some(err) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
+                        err.into(),
+                    )))),
+                    None => Ok(inv_r.msg),
+                },
                 Err(e) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
                     e.into(),
                 )))),
