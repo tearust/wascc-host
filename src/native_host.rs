@@ -43,7 +43,7 @@ impl NativeHost {
         {
             return Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
                 "Capability provider {} cannot be bound to the same name ({}) twice, loading failed.", capid, capability.binding_name
-            ))));
+            ))).into());
         }
         self.caps.write().unwrap().insert(
             (

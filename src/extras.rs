@@ -4,12 +4,13 @@
 // WASM module cannot do.
 
 use crate::{REVISION, VERSION};
-use std::error::Error;
 use std::sync::{Arc, RwLock};
 use std::{
     collections::HashMap,
     sync::atomic::{AtomicU64, Ordering},
 };
+use tea_codec::error::code::wascc::{new_wascc_error_code, BAD_DISPATCH};
+use tea_codec::error::TeaResult;
 use uuid::Uuid;
 use wascc_codec::capabilities::{
     CapabilityDescriptor, CapabilityProvider, Dispatcher, NullDispatcher, OperationDirection,
@@ -35,11 +36,7 @@ impl Default for ExtrasCapabilityProvider {
 const CAPABILITY_ID: &str = "wascc:extras";
 
 impl ExtrasCapabilityProvider {
-    fn generate_guid(
-        &self,
-        _actor: &str,
-        _msg: GeneratorRequest,
-    ) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn generate_guid(&self, _actor: &str, _msg: GeneratorRequest) -> TeaResult<Vec<u8>> {
         let uuid = Uuid::new_v4();
         let result = GeneratorResult {
             guid: Some(format!("{}", uuid)),
@@ -50,11 +47,7 @@ impl ExtrasCapabilityProvider {
         Ok(serialize(&result)?)
     }
 
-    fn generate_random(
-        &self,
-        _actor: &str,
-        msg: GeneratorRequest,
-    ) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn generate_random(&self, _actor: &str, msg: GeneratorRequest) -> TeaResult<Vec<u8>> {
         use rand::prelude::*;
         let mut rng = rand::thread_rng();
         let result = if let GeneratorRequest {
@@ -74,14 +67,10 @@ impl ExtrasCapabilityProvider {
             GeneratorResult::default()
         };
 
-        Ok(serialize(result)?)
+        Ok(serialize(&result)?)
     }
 
-    fn generate_sequence(
-        &self,
-        actor: &str,
-        _msg: GeneratorRequest,
-    ) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn generate_sequence(&self, actor: &str, _msg: GeneratorRequest) -> TeaResult<Vec<u8>> {
         let mut lock = self.sequences.write().unwrap();
         let seq = lock
             .entry(actor.to_string())
@@ -95,9 +84,9 @@ impl ExtrasCapabilityProvider {
         Ok(serialize(&result)?)
     }
 
-    fn get_descriptor(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn get_descriptor(&self) -> TeaResult<Vec<u8>> {
         Ok(serialize(
-            CapabilityDescriptor::builder()
+            &CapabilityDescriptor::builder()
                 .id(CAPABILITY_ID)
                 .name("waSCC Extras (Internal)")
                 .long_description(
@@ -129,7 +118,7 @@ impl CapabilityProvider for ExtrasCapabilityProvider {
     fn configure_dispatch(
         &self,
         dispatcher: Box<dyn wascc_codec::capabilities::Dispatcher>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> TeaResult<()> {
         trace!("Dispatcher received.");
         let mut lock = self.dispatcher.write().unwrap();
         *lock = dispatcher;
@@ -137,12 +126,7 @@ impl CapabilityProvider for ExtrasCapabilityProvider {
         Ok(())
     }
 
-    fn handle_call(
-        &self,
-        actor: &str,
-        op: &str,
-        msg: &[u8],
-    ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn handle_call(&self, actor: &str, op: &str, msg: &[u8]) -> TeaResult<Vec<u8>> {
         trace!("Received host call from {}, operation - {}", actor, op);
 
         match op {
@@ -150,7 +134,7 @@ impl CapabilityProvider for ExtrasCapabilityProvider {
             OP_REQUEST_GUID => self.generate_guid(actor, deserialize(msg)?),
             OP_REQUEST_RANDOM => self.generate_random(actor, deserialize(msg)?),
             OP_REQUEST_SEQUENCE => self.generate_sequence(actor, deserialize(msg)?),
-            _ => Err("bad dispatch".into()),
+            _ => Err(new_wascc_error_code(BAD_DISPATCH).to_error_code(None, None)),
         }
     }
 }

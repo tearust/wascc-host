@@ -17,6 +17,7 @@ use crate::{Result, WasccHost};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
+use tea_codec::error::TeaError;
 use wascap::jwt::Token;
 use wascap::prelude::*;
 
@@ -48,7 +49,8 @@ pub(crate) fn can_invoke(claims: &Claims<wascap::jwt::Actor>, capability_id: &st
 
 // Extract claims from the JWT embedded in the wasm module's custom section
 pub(crate) fn extract_claims(buf: &[u8]) -> Result<wascap::jwt::Token<wascap::jwt::Actor>> {
-    let token = wascap::wasm::extract_claims(buf)?;
+    let token = wascap::wasm::extract_claims(buf)
+        .map_err::<TeaError, _>(|e| errors::new(errors::ErrorKind::Wascap(e)).into())?;
     match token {
         Some(token) => {
             let claims = token.claims.clone();
@@ -62,21 +64,25 @@ pub(crate) fn extract_claims(buf: &[u8]) -> Result<wascap::jwt::Token<wascap::jw
         }
         None => Err(errors::new(errors::ErrorKind::Authorization(
             "No embedded JWT in actor module".to_string(),
-        ))),
+        ))
+        .into()),
     }
 }
 
 pub(crate) fn enforce_validation(jwt: &str) -> Result<()> {
-    let v = validate_token::<wascap::jwt::Actor>(jwt)?;
+    let v = validate_token::<wascap::jwt::Actor>(jwt)
+        .map_err::<TeaError, _>(|e| errors::new(errors::ErrorKind::Wascap(e)).into())?;
     if v.expired {
         Err(errors::new(errors::ErrorKind::Authorization(
             "Expired token".to_string(),
-        )))
+        ))
+        .into())
     } else if v.cannot_use_yet {
         Err(errors::new(errors::ErrorKind::Authorization(format!(
             "Module cannot be used before {}",
             v.not_before_human
-        ))))
+        )))
+        .into())
     } else {
         Ok(())
     }

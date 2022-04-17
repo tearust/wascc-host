@@ -1815,9 +1815,9 @@ dependencies = [
 
 [[package]]
 name = "rmp-serde"
-version = "0.14.4"
+version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ce7d70c926fe472aed493b902010bccc17fa9f7284145cb8772fd22fdb052d8"
+checksum = "723ecff9ad04f4ad92fe1c8ca6c20d2196d9286e9c60727c4cb5511629260e9d"
 dependencies = [
  "byteorder",
  "rmp",
@@ -2163,6 +2163,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab0e7238dcc7b40a7be719a25365910f6807bd864f4cce6b2e6b873658e2b19d"
 
 [[package]]
+name = "tea-codec"
+version = "0.1.1"
+dependencies = [
+ "log",
+ "rmp-serde",
+ "serde",
+ "serde_bytes",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2453,7 +2466,6 @@ dependencies = [
 [[package]]
 name = "wapc"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wapc-rust?branch=nitro#48a011b41f14f16d80da76dbefcd2d9cdfcbfd20"
 dependencies = [
  "anyhow",
  "env_logger 0.7.1",
@@ -2461,6 +2473,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "tea-codec",
  "wasi-common",
  "wasmtime",
  "wasmtime-wasi",
@@ -2490,14 +2503,14 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wascc-codec?rev=e7b454e#e7b454e4dd37065f65e252c167a2c22d5dc644c0"
 dependencies = [
  "log",
- "rmp-serde",
  "serde",
  "serde_bytes",
  "serde_derive",
  "serde_json",
+ "tea-codec",
+ "thiserror",
 ]
 
 [[package]]
@@ -2520,6 +2533,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "structopt",
+ "tea-codec",
  "tokio",
  "uuid",
  "wapc",

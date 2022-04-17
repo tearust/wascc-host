@@ -94,7 +94,8 @@ impl Router {
             Err(errors::new(errors::ErrorKind::MiscHost(format!(
                 "Failed to remove route - does not exist: {:?}",
                 key
-            ))))
+            )))
+            .into())
         }
     }
 }

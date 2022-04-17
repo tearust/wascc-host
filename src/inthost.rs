@@ -13,6 +13,10 @@ use router::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use tea_codec::error::code::wascc::{
+    new_wascc_error_code, ACTOR_TO_ACTOR_CALL_NOT_EXIST, HOST_CALL_FAILURE,
+};
+use tea_codec::error::{TeaError, TeaResult};
 use uuid::Uuid;
 use wapc::prelude::*;
 use wascap::jwt::Claims;
@@ -101,7 +105,7 @@ impl WasccHost {
                             result
                         }
                         Err(e) => {
-                            error!("Failed to load descriptor from portable provider: {}", e);
+                            error!("Failed to load descriptor from portable provider: {:?}", e);
                             "".to_string()
                         }
                     }
@@ -245,7 +249,7 @@ impl WasccHost {
                                                 match entry.invoke(inv.clone()) {
                                                     Ok(ir) => ir,
                                                     Err(e) => InvocationResponse::error(inv,&format!(
-                                                        "Capability to actor call failure: {}", e
+                                                        "Capability to actor call failure: {:?}", e
                                                     ))
                                                 }
                                             }
@@ -275,8 +279,10 @@ impl WasccHost {
 /// In the case of a portable capability provider, obtain its capability descriptor
 fn get_descriptor(host: &mut WapcHost) -> Result<CapabilityDescriptor> {
     let msg = wascc_codec::core::HealthRequest { placeholder: false }; // TODO: eventually support sending an empty slice for this
-    let res = host.call(OP_GET_CAPABILITY_DESCRIPTOR, &serialize(&msg)?)?;
-    deserialize(&res).map_err(|e| e.into())
+    let res = host
+        .call(OP_GET_CAPABILITY_DESCRIPTOR, &serialize(&msg)?)
+        .map_err::<TeaError, _>(|e| e.into())?;
+    deserialize(&res)
 }
 
 pub(crate) fn remove_cap(
@@ -307,7 +313,8 @@ pub(crate) fn replace_actor(router: Arc<RwLock<Router>>, new_actor: Actor) -> Re
         None => Err(errors::new(errors::ErrorKind::MiscHost(format!(
             "Cannot replace non-existent actor: {}",
             public_key
-        )))),
+        )))
+        .into()),
     }
 }
 
@@ -467,50 +474,49 @@ fn host_callback(
     ns: &str,
     op: &str,
     payload: &[u8],
-) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
+) -> TeaResult<Vec<u8>> {
     trace!("Guest {} invoking {}:{}", claims.subject, ns, op);
 
     let capability_id = ns;
     let inv = invocation_from_callback(&claims.subject, bd, ns, op, payload);
 
     if !authz::can_invoke(&claims, capability_id) {
-        return Err(Box::new(errors::new(errors::ErrorKind::Authorization(
-            format!(
-                "Actor {} does not have permission to communicate with {}",
-                claims.subject, capability_id
-            ),
-        ))));
+        return Err(errors::new(errors::ErrorKind::Authorization(format!(
+            "Actor {} does not have permission to communicate with {}",
+            claims.subject, capability_id
+        )))
+        .into());
     }
     match &inv.target {
         InvocationTarget::Actor(subject) => {
             // This is an actor-to-actor call
             match router.read().unwrap().get_route(ACTOR_BINDING, &subject) {
                 Some(entry) => match entry.invoke(inv.clone()) {
-                    Ok(inv_r) => match inv_r.error {
-                        Some(err) => Err(Box::new(errors::new(
-                            errors::ErrorKind::HostCallFailure(err.into()),
-                        ))),
-                        None => Ok(inv_r.msg),
-                    },
-                    Err(e) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
-                        e.into(),
-                    )))),
+                    Ok(inv_r) => {
+                        match inv_r.error {
+                            Some(err) => Err(new_wascc_error_code(HOST_CALL_FAILURE)
+                                .to_error_code(Some(err), None)),
+                            None => Ok(inv_r.msg),
+                        }
+                    }
+                    Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e.into())).into()),
                 },
-                None => Err("Attempted actor-to-actor call to non-existent target".into()),
+                None => {
+                    Err(new_wascc_error_code(ACTOR_TO_ACTOR_CALL_NOT_EXIST)
+                        .to_error_code(None, None))
+                }
             }
         }
         InvocationTarget::Capability { .. } => {
             // This is a standard actor-to-host call
             match middleware::invoke_capability(middlewares, plugins.clone(), router, inv.clone()) {
                 Ok(inv_r) => match inv_r.error {
-                    Some(err) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
-                        err.into(),
-                    )))),
+                    Some(err) => {
+                        Err(new_wascc_error_code(HOST_CALL_FAILURE).to_error_code(Some(err), None))
+                    }
                     None => Ok(inv_r.msg),
                 },
-                Err(e) => Err(Box::new(errors::new(errors::ErrorKind::HostCallFailure(
-                    e.into(),
-                )))),
+                Err(e) => Err(e.into()),
             }
         }
     }

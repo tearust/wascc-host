@@ -39,7 +39,7 @@ pub(crate) fn invoke_capability(
     let inv = match run_capability_pre_invoke(inv.clone(), mw) {
         Ok(i) => i,
         Err(e) => {
-            error!("Middleware failure: {}", e);
+            error!("Middleware failure: {:?}", e);
             inv
         }
     };
@@ -48,13 +48,13 @@ pub(crate) fn invoke_capability(
 
     let r = match lock.call(router, &inv) {
         Ok(r) => r,
-        Err(e) => InvocationResponse::error(&inv, &format!("Failed to invoke capability: {}", e)),
+        Err(e) => InvocationResponse::error(&inv, &format!("Failed to invoke capability: {:?}", e)),
     };
 
     match run_capability_post_invoke(r.clone(), &middlewares.read().unwrap()) {
         Ok(r) => Ok(r),
         Err(e) => {
-            error!("Middleware failure: {}", e);
+            error!("Middleware failure: {:?}", e);
             Ok(r)
         }
     }
@@ -69,7 +69,7 @@ pub(crate) fn invoke_actor(
     let inv = match run_actor_pre_invoke(inv.clone(), mw) {
         Ok(i) => i,
         Err(e) => {
-            error!("Middleware failure: {}", e);
+            error!("Middleware failure: {:?}", e);
             inv
         }
     };
@@ -82,7 +82,7 @@ pub(crate) fn invoke_actor(
     match run_actor_post_invoke(inv_r.clone(), &lock) {
         Ok(r) => Ok(r),
         Err(e) => {
-            error!("Middleware failure: {}", e);
+            error!("Middleware failure: {:?}", e);
             Ok(inv_r)
         }
     }

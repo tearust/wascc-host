@@ -16,6 +16,13 @@
 
 use std::error::Error as StdError;
 use std::fmt;
+use tea_codec::error::code::common::{new_common_error_code, STD_IO_ERROR};
+use tea_codec::error::code::wascc::{
+    new_wascc_error_code, CAPABILITY_PROVIDER_ERROR, HOST_AUTHORIZATION_ERROR, HOST_CALL_FAILURE,
+    MIDDLEWARE_ERROR, MISC_HOST_ERROR, PLUGIN_ERROR, WAPC_GENERAL_ERROR, WASCAP_GENERAL_ERROR,
+};
+use tea_codec::error::TeaError;
+use wapc::errors::WapcError;
 
 #[derive(Debug)]
 pub struct Error(Box<ErrorKind>);
@@ -26,8 +33,8 @@ pub fn new(kind: ErrorKind) -> Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Wapc(wapc::errors::Error),
-    HostCallFailure(Box<dyn StdError>),
+    Wapc(WapcError),
+    HostCallFailure(TeaError),
     Wascap(wascap::Error),
     Authorization(String),
     IO(std::io::Error),
@@ -44,6 +51,42 @@ impl Error {
 
     pub fn into_kind(self) -> ErrorKind {
         *self.0
+    }
+}
+
+impl Into<TeaError> for Error {
+    fn into(self) -> TeaError {
+        match *self.0 {
+            ErrorKind::Wapc(inner) => {
+                new_wascc_error_code(WAPC_GENERAL_ERROR).error_from_nested(inner.into())
+            }
+            ErrorKind::IO(e) => {
+                new_common_error_code(STD_IO_ERROR).to_error_code(Some(format!("{:?}", e)), None)
+            }
+            ErrorKind::HostCallFailure(inner) => {
+                new_wascc_error_code(HOST_CALL_FAILURE).error_from_nested(inner)
+            }
+            ErrorKind::Wascap(e) => {
+                // todo transfer wascap error later
+                new_wascc_error_code(WASCAP_GENERAL_ERROR)
+                    .to_error_code(Some(format!("{:?}", e)), None)
+            }
+            ErrorKind::Authorization(s) => {
+                new_wascc_error_code(HOST_AUTHORIZATION_ERROR).to_error_code(Some(s), None)
+            }
+            ErrorKind::CapabilityProvider(s) => {
+                new_wascc_error_code(CAPABILITY_PROVIDER_ERROR).to_error_code(Some(s), None)
+            }
+            ErrorKind::MiscHost(s) => {
+                new_wascc_error_code(MISC_HOST_ERROR).to_error_code(Some(s), None)
+            }
+            ErrorKind::Plugin(e) => {
+                new_wascc_error_code(PLUGIN_ERROR).to_error_code(Some(format!("{:?}", e)), None)
+            }
+            ErrorKind::Middleware(s) => {
+                new_wascc_error_code(MIDDLEWARE_ERROR).to_error_code(Some(s), None)
+            }
+        }
     }
 }
 
@@ -82,7 +125,7 @@ impl fmt::Display for Error {
         match *self.0 {
             ErrorKind::Wapc(ref err) => write!(f, "waPC failure: {}", err),
             ErrorKind::HostCallFailure(ref err) => {
-                write!(f, "Error occurred during host call: {}", err)
+                write!(f, "Error occurred during host call: {:?}", err)
             }
             ErrorKind::Wascap(ref err) => write!(f, "Embedded JWT failure: {}", err),
             ErrorKind::Authorization(ref err) => {
@@ -110,8 +153,8 @@ impl From<wascap::Error> for Error {
     }
 }
 
-impl From<wapc::errors::Error> for Error {
-    fn from(source: wapc::errors::Error) -> Error {
+impl From<wapc::errors::WapcError> for Error {
+    fn from(source: wapc::errors::WapcError) -> Error {
         Error(Box::new(ErrorKind::Wapc(source)))
     }
 }
@@ -119,11 +162,5 @@ impl From<wapc::errors::Error> for Error {
 impl From<std::io::Error> for Error {
     fn from(source: std::io::Error) -> Error {
         Error(Box::new(ErrorKind::IO(source)))
-    }
-}
-
-impl From<Box<dyn StdError>> for Error {
-    fn from(source: Box<dyn StdError>) -> Error {
-        Error(Box::new(ErrorKind::HostCallFailure(source)))
     }
 }

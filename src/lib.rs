@@ -84,7 +84,7 @@ extern crate crossbeam;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const REVISION: u32 = 2;
 
-pub type Result<T> = std::result::Result<T, errors::Error>;
+pub type Result<T> = TeaResult<T>;
 pub use actor::Actor;
 pub use capability::NativeCapability;
 pub use inthost::{Invocation, InvocationResponse, InvocationTarget};
@@ -124,6 +124,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
+use tea_codec::error::TeaResult;
 use wascap::jwt::{Claims, Token};
 use wascc_codec::{
     capabilities::CapabilityDescriptor,
@@ -173,14 +174,16 @@ impl WasccHost {
             return Err(errors::new(errors::ErrorKind::MiscHost(format!(
                 "Actor {} is already running in this host, failed to add.",
                 actor.public_key()
-            ))));
+            )))
+            .into());
         }
         authz::enforce_validation(&actor.token.jwt)?; // returns an `Err` if validation fails
         if !self.check_auth(&actor.token) {
             // invoke the auth hook, if there is one
             return Err(errors::new(errors::ErrorKind::Authorization(
                 "Authorization hook denied access to module".into(),
-            )));
+            ))
+            .into());
         }
 
         info!("Adding actor {} to host", actor.public_key());
@@ -262,7 +265,7 @@ impl WasccHost {
         {
             return Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
                 "Capability provider {} cannot be bound to the same name ({}) twice, loading failed.", capid, capability.binding_name                
-            ))));
+            ))).into());
         }
         self.caps.write().unwrap().insert(
             (
@@ -288,9 +291,7 @@ impl WasccHost {
             entry.terminate();
             Ok(())
         } else {
-            Err(errors::new(errors::ErrorKind::MiscHost(
-                "No such capability".into(),
-            )))
+            Err(errors::new(errors::ErrorKind::MiscHost("No such capability".into())).into())
         }
     }
 
@@ -308,13 +309,15 @@ impl WasccHost {
         if claims.is_none() {
             return Err(errors::new(errors::ErrorKind::MiscHost(
                 "Attempted to bind non-existent actor".to_string(),
-            )));
+            ))
+            .into());
         }
         if !authz::can_invoke(&claims.unwrap(), capid) {
             return Err(errors::new(errors::ErrorKind::Authorization(format!(
                 "Unauthorized binding: actor {} is not authorized to use capability {}.",
                 actor, capid
-            ))));
+            )))
+            .into());
         }
         let binding = binding_name.unwrap_or("default".to_string());
         info!(
@@ -333,7 +336,8 @@ impl WasccHost {
                     Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
                         "Failed to configure {},{} - {}",
                         binding, capid, e
-                    ))))
+                    )))
+                    .into())
                 } else {
                     self.record_binding(actor, capid, &binding)?;
                     Ok(())
@@ -353,7 +357,8 @@ impl WasccHost {
                     Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
                         "No such capability provider: {},{}",
                         binding, capid
-                    ))))
+                    )))
+                    .into())
                 }
             }
         }
@@ -374,9 +379,7 @@ impl WasccHost {
                     Err(e) => Err(e),
                 }
             }
-            None => Err(errors::new(errors::ErrorKind::MiscHost(
-                "No such actor".into(),
-            ))),
+            None => Err(errors::new(errors::ErrorKind::MiscHost("No such actor".into())).into()),
         }
     }
 

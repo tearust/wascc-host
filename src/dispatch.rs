@@ -14,7 +14,11 @@
 
 use crate::inthost::{Invocation, InvocationResponse, InvocationTarget};
 use crossbeam_channel::{Receiver, Sender};
-use std::error::Error;
+use tea_codec::error::code::common::{
+    new_common_error_code, CHANNEL_RECEIVE_ERROR, CHANNEL_SEND_ERROR,
+};
+use tea_codec::error::code::wascc::{new_wascc_error_code, INVOCATION_ERROR};
+use tea_codec::error::TeaResult;
 use wascc_codec::capabilities::Dispatcher;
 
 /// A dispatcher is given to each capability provider, allowing it to send
@@ -43,7 +47,7 @@ impl WasccNativeDispatcher {
 
 impl Dispatcher for WasccNativeDispatcher {
     /// Called by a capability provider to invoke a function on an actor
-    fn dispatch(&self, actor: &str, op: &str, msg: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn dispatch(&self, actor: &str, op: &str, msg: &[u8]) -> TeaResult<Vec<u8>> {
         trace!(
             "Dispatching operation '{}' ({} bytes) to actor",
             op,
@@ -55,14 +59,17 @@ impl Dispatcher for WasccNativeDispatcher {
             op,
             msg.to_vec(),
         );
-        self.invoc_s.send(inv)?;
+        self.invoc_s.send(inv).map_err(|e| {
+            new_common_error_code(CHANNEL_SEND_ERROR).to_error_code(Some(format!("{:?}", e)), None)
+        })?;
         let resp = self.resp_r.recv();
         match resp {
             Ok(r) => match r.error {
-                Some(e) => Err(format!("Invocation failure: {}", e).into()),
+                Some(s) => Err(new_wascc_error_code(INVOCATION_ERROR).to_error_code(Some(s), None)),
                 None => Ok(r.msg),
             },
-            Err(e) => Err(Box::new(e)),
+            Err(e) => Err(new_common_error_code(CHANNEL_RECEIVE_ERROR)
+                .to_error_code(Some(format!("{:?}", e)), None)),
         }
     }
 }

@@ -42,11 +42,13 @@ impl PluginManager {
                 Ok(_) => Ok(()),
                 Err(_) => Err(errors::new(ErrorKind::CapabilityProvider(
                     "Failed to configure dispatch on provider".into(),
-                ))),
+                ))
+                .into()),
             },
             None => Err(errors::new(ErrorKind::CapabilityProvider(
                 "attempt to register dispatcher for non-existent plugin".into(),
-            ))),
+            ))
+            .into()),
         }
     }
 
@@ -61,7 +63,7 @@ impl PluginManager {
                 // native capability is registered via plugin
                 Some(c) => match c.plugin.handle_call(&inv.origin, &inv.operation, &inv.msg) {
                     Ok(msg) => Ok(InvocationResponse::success(inv, msg)),
-                    Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e))),
+                    Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e)).into()),
                 },
                 // if there's no plugin, check if there's a route pointing to this capid (portable capability provider)
                 None => {
@@ -71,14 +73,14 @@ impl PluginManager {
                         Err(errors::new(ErrorKind::CapabilityProvider(format!(
                             "No such capability ID registered as native plug-in or portable provider: {:?}",
                             route_key
-                        ))))
+                        ))).into())
                     }
                 }
             }
         } else {
             Err(errors::new(ErrorKind::MiscHost(
                 "Attempted to invoke a capability provider plugin as though it were an actor. Bad route?".into()
-            )))
+            )).into())
         }
     }
 
@@ -89,7 +91,8 @@ impl PluginManager {
                 "Duplicate capability ID attempted to register provider: ({},{})",
                 plugin.binding_name,
                 plugin.id()
-            ))))
+            )))
+            .into())
         } else {
             self.plugins.insert(key, plugin);
             Ok(())
