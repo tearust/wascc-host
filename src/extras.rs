@@ -9,8 +9,7 @@ use std::{
     collections::HashMap,
     sync::atomic::{AtomicU64, Ordering},
 };
-use tea_codec::error::code::wascc::{new_wascc_error_code, BAD_DISPATCH};
-use tea_codec::error::TeaResult;
+use tea_codec::error::{new_wascc_error_code, TeaResult, WasccCode};
 use uuid::Uuid;
 use wascc_codec::capabilities::{
     CapabilityDescriptor, CapabilityProvider, Dispatcher, NullDispatcher, OperationDirection,
@@ -134,7 +133,7 @@ impl CapabilityProvider for ExtrasCapabilityProvider {
             OP_REQUEST_GUID => self.generate_guid(actor, deserialize(msg)?),
             OP_REQUEST_RANDOM => self.generate_random(actor, deserialize(msg)?),
             OP_REQUEST_SEQUENCE => self.generate_sequence(actor, deserialize(msg)?),
-            _ => Err(new_wascc_error_code(BAD_DISPATCH).to_error_code(None, None)),
+            _ => Err(new_wascc_error_code(WasccCode::BadDispatch).to_error_code(None, None)),
         }
     }
 }

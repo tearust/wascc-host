@@ -13,10 +13,7 @@ use router::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use tea_codec::error::code::wascc::{
-    new_wascc_error_code, ACTOR_TO_ACTOR_CALL_NOT_EXIST, HOST_CALL_FAILURE,
-};
-use tea_codec::error::{TeaError, TeaResult};
+use tea_codec::error::{new_wascc_error_code, TeaError, TeaResult, WasccCode};
 use uuid::Uuid;
 use wapc::prelude::*;
 use wascap::jwt::Claims;
@@ -492,28 +489,23 @@ fn host_callback(
             // This is an actor-to-actor call
             match router.read().unwrap().get_route(ACTOR_BINDING, &subject) {
                 Some(entry) => match entry.invoke(inv.clone()) {
-                    Ok(inv_r) => {
-                        match inv_r.error {
-                            Some(err) => Err(new_wascc_error_code(HOST_CALL_FAILURE)
-                                .to_error_code(Some(err), None)),
-                            None => Ok(inv_r.msg),
-                        }
-                    }
+                    Ok(inv_r) => match inv_r.error {
+                        Some(err) => Err(new_wascc_error_code(WasccCode::HostCallFailure)
+                            .to_error_code(Some(err), None)),
+                        None => Ok(inv_r.msg),
+                    },
                     Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e.into())).into()),
                 },
-                None => {
-                    Err(new_wascc_error_code(ACTOR_TO_ACTOR_CALL_NOT_EXIST)
-                        .to_error_code(None, None))
-                }
+                None => Err(new_wascc_error_code(WasccCode::ActorToActorCallNotExist)
+                    .to_error_code(None, None)),
             }
         }
         InvocationTarget::Capability { .. } => {
             // This is a standard actor-to-host call
             match middleware::invoke_capability(middlewares, plugins.clone(), router, inv.clone()) {
                 Ok(inv_r) => match inv_r.error {
-                    Some(err) => {
-                        Err(new_wascc_error_code(HOST_CALL_FAILURE).to_error_code(Some(err), None))
-                    }
+                    Some(err) => Err(new_wascc_error_code(WasccCode::HostCallFailure)
+                        .to_error_code(Some(err), None)),
                     None => Ok(inv_r.msg),
                 },
                 Err(e) => Err(e.into()),

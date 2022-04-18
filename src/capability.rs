@@ -16,7 +16,7 @@ use crate::Result;
 use libloading::Library;
 use libloading::Symbol;
 use std::ffi::OsStr;
-use tea_codec::error::code::wascc::{new_wascc_error_code, PLUGIN_ERROR};
+use tea_codec::error::{new_wascc_error_code, WasccCode};
 use wascc_codec::{
     capabilities::{CapabilityDescriptor, CapabilityProvider, OP_GET_CAPABILITY_DESCRIPTOR},
     deserialize,
@@ -43,13 +43,15 @@ impl NativeCapability {
         type PluginCreate = unsafe fn() -> *mut dyn CapabilityProvider;
 
         let library = Library::new(filename.as_ref()).map_err(|e| {
-            new_wascc_error_code(PLUGIN_ERROR).to_error_code(Some(format!("{:?}", e)), None)
+            new_wascc_error_code(WasccCode::PluginError)
+                .to_error_code(Some(format!("{:?}", e)), None)
         })?;
 
         let plugin = unsafe {
             let constructor: Symbol<PluginCreate> =
                 library.get(b"__capability_provider_create").map_err(|e| {
-                    new_wascc_error_code(PLUGIN_ERROR).to_error_code(Some(format!("{:?}", e)), None)
+                    new_wascc_error_code(WasccCode::PluginError)
+                        .to_error_code(Some(format!("{:?}", e)), None)
                 })?;
             let boxed_raw = constructor();
 
