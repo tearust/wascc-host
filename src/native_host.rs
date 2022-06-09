@@ -11,6 +11,7 @@ use crossbeam_utils::sync::WaitGroup;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use tea_codec::error::{new_wascc_error_code, WasccCode};
 use wascc_codec::capabilities::CapabilityDescriptor;
 
 #[derive(Clone)]
@@ -103,7 +104,9 @@ impl NativeHost {
                                 },
                                 InvocationTarget::Actor(_) => {
                                    error!("## invocation target is actor");
-                                   InvocationResponse::error(inv, "invocation target of native host can't be actor")
+                                   InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
+                                       Some("invocation target of native host can't be actor".to_owned()), None
+                                   ))
                                 }
                             };
                             resp_s.send(inv_r).unwrap();

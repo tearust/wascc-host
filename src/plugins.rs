@@ -63,7 +63,7 @@ impl PluginManager {
                 // native capability is registered via plugin
                 Some(c) => match c.plugin.handle_call(&inv.origin, &inv.operation, &inv.msg) {
                     Ok(msg) => Ok(InvocationResponse::success(inv, msg)),
-                    Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e)).into()),
+                    Err(e) => Err(e),
                 },
                 // if there's no plugin, check if there's a route pointing to this capid (portable capability provider)
                 None => {

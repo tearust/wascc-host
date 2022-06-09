@@ -14,9 +14,7 @@
 
 use crate::inthost::{Invocation, InvocationResponse, InvocationTarget};
 use crossbeam_channel::{Receiver, Sender};
-use tea_codec::error::{
-    new_common_error_code, new_wascc_error_code, CommonCode, TeaResult, WasccCode,
-};
+use tea_codec::error::{new_common_error_code, CommonCode, TeaResult};
 use wascc_codec::capabilities::Dispatcher;
 
 /// A dispatcher is given to each capability provider, allowing it to send
@@ -63,13 +61,10 @@ impl Dispatcher for WasccNativeDispatcher {
         })?;
         let resp = self.resp_r.recv();
         match resp {
-            Ok(r) => {
-                match r.error {
-                    Some(s) => Err(new_wascc_error_code(WasccCode::InvocationError)
-                        .to_error_code(Some(s), None)),
-                    None => Ok(r.msg),
-                }
-            }
+            Ok(r) => match r.error {
+                Some(e) => Err(e),
+                None => Ok(r.msg),
+            },
             Err(e) => Err(new_common_error_code(CommonCode::ChannelReceiveError)
                 .to_error_code(Some(format!("{:?}", e)), None)),
         }

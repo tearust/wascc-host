@@ -236,21 +236,24 @@ impl WasccHost {
                                 InvocationTarget::Actor(tgt_actor) => {
                                     let tgt_claims = claims_map.read().unwrap().get(tgt_actor).cloned().unwrap();
                                     if !authz::can_invoke(&tgt_claims, &capid) {
-                                        InvocationResponse::error(inv, &format!(
+                                        InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
+                                            Some(format!(
                                             "Dispatch between actor and unauthorized capability: {} <-> {}",
                                             tgt_claims.subject, capid
-                                        ))
+                                        )), None
+                                        ) )
                                     } else {
                                         match router.read().unwrap().get_route(ACTOR_BINDING, &tgt_actor) {
                                             Some(ref entry) => {
                                                 match entry.invoke(inv.clone()) {
                                                     Ok(ir) => ir,
-                                                    Err(e) => InvocationResponse::error(inv,&format!(
-                                                        "Capability to actor call failure: {:?}", e
-                                                    ))
+                                                    Err(e) => InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
+                                                        Some(format!(
+                                                        "Capability to actor call failure: {:?}", e)), None))
                                                 }
                                             }
-                                            None => InvocationResponse::error(inv, "Dispatch to unknown actor"),
+                                            None => InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
+                                                Some("Dispatch to unknown actor".to_owned()), None)),
                                         }
                                     }
                                 }
@@ -333,8 +336,12 @@ fn live_update(guest: &mut WapcHost, inv: &Invocation) -> InvocationResponse {
     match guest.replace_module(&inv.msg) {
         Ok(_) => InvocationResponse::success(inv, vec![]),
         Err(e) => {
-            error!("Failed to perform hot swap, ignoring message: {}", e);
-            InvocationResponse::error(inv, "Failed to perform hot swap")
+            error!("Failed to perform hot swap, ignoring message: {:?}", e);
+            InvocationResponse::error(
+                inv,
+                new_wascc_error_code(WasccCode::InvocationError)
+                    .to_error_code(Some("Failed to perform hot swap".to_owned()), None),
+            )
         }
     }
 }
@@ -433,7 +440,7 @@ impl Invocation {
 #[derive(Debug, Clone)]
 pub struct InvocationResponse {
     pub msg: Vec<u8>,
-    pub error: Option<String>,
+    pub error: Option<TeaError>,
     pub invocation_id: String,
 }
 
@@ -446,10 +453,10 @@ impl InvocationResponse {
         }
     }
 
-    pub fn error(inv: &Invocation, err: &str) -> InvocationResponse {
+    pub fn error(inv: &Invocation, err: TeaError) -> InvocationResponse {
         InvocationResponse {
             msg: Vec::new(),
-            error: Some(err.to_string()),
+            error: Some(err),
             invocation_id: inv.id.to_string(),
         }
     }
@@ -490,8 +497,7 @@ fn host_callback(
             match router.read().unwrap().get_route(ACTOR_BINDING, &subject) {
                 Some(entry) => match entry.invoke(inv.clone()) {
                     Ok(inv_r) => match inv_r.error {
-                        Some(err) => Err(new_wascc_error_code(WasccCode::HostCallFailure)
-                            .to_error_code(Some(err), None)),
+                        Some(err) => Err(err),
                         None => Ok(inv_r.msg),
                     },
                     Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e.into())).into()),
@@ -504,8 +510,7 @@ fn host_callback(
             // This is a standard actor-to-host call
             match middleware::invoke_capability(middlewares, plugins.clone(), router, inv.clone()) {
                 Ok(inv_r) => match inv_r.error {
-                    Some(err) => Err(new_wascc_error_code(WasccCode::HostCallFailure)
-                        .to_error_code(Some(err), None)),
+                    Some(err) => Err(err),
                     None => Ok(inv_r.msg),
                 },
                 Err(e) => Err(e.into()),
