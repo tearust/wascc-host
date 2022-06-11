@@ -307,9 +307,10 @@ impl WasccHost {
     ) -> Result<()> {
         let claims = self.claims.read().unwrap().get(actor).cloned();
         if claims.is_none() {
-            return Err(errors::new(errors::ErrorKind::MiscHost(
-                "Attempted to bind non-existent actor".to_string(),
-            ))
+            return Err(errors::new(errors::ErrorKind::MiscHost(format!(
+                "Attempted to bind non-existent actor: ({}:{}) binding is {:?}",
+                actor, capid, binding_name
+            )))
             .into());
         }
         if !authz::can_invoke(&claims.unwrap(), capid) {
