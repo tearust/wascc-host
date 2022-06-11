@@ -210,11 +210,18 @@ impl WasccHost {
                 channel::unbounded();
             let (term_s, term_r): (Sender<bool>, Receiver<bool>) = channel::unbounded();
             let dispatcher = WasccNativeDispatcher::new(resp_r.clone(), inv_s.clone(), &capid);
-            plugins
+            if let Err(e) = plugins
                 .write()
                 .unwrap()
                 .register_dispatcher(&binding, &capid, dispatcher)
-                .unwrap();
+            {
+                warn!(
+                    "failed to load native capability provider '({},{})' because: {:?}",
+                    binding, capid, e
+                );
+                drop(wg);
+                return;
+            }
 
             router
                 .write()
