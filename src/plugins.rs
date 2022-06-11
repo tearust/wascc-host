@@ -40,9 +40,10 @@ impl PluginManager {
         match self.plugins.get(&key) {
             Some(p) => match p.plugin.configure_dispatch(Box::new(dispatcher)) {
                 Ok(_) => Ok(()),
-                Err(_) => Err(errors::new(ErrorKind::CapabilityProvider(
-                    "Failed to configure dispatch on provider".into(),
-                ))
+                Err(e) => Err(errors::new(ErrorKind::CapabilityProvider(format!(
+                    "Failed to configure dispatch on provider: {:?}",
+                    e
+                )))
                 .into()),
             },
             None => Err(errors::new(ErrorKind::CapabilityProvider(
