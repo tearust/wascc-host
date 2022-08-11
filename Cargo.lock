@@ -2279,7 +2279,7 @@ checksum = "c02424087780c9b71cc96799eaeddff35af2bc513278cda5c99fc1f5d026d3c1"
 [[package]]
 name = "tea-codec"
 version = "0.1.1"
-source = "git+https://github.com/tearust/tea-codec?branch=dev#a7320012635dd188c8651082210b2cf287631c3d"
+source = "git+https://github.com/tearust/tea-codec?branch=eth#643dce33e901d60fb5c3c4c2531920d961239f82"
 dependencies = [
  "base64",
  "bincode",
@@ -2604,7 +2604,7 @@ dependencies = [
 [[package]]
 name = "wapc"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wapc-rust?branch=nitro#3b2b58fe2fd0ed7ffc02aef40dea10a91894569c"
+source = "git+https://github.com/tearust/wapc-rust?branch=eth#831da19fdd0c1765840d15ea51ddbebec174b807"
 dependencies = [
  "anyhow",
  "env_logger 0.7.1",
@@ -2642,7 +2642,7 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wascc-codec?branch=nitro#8969b6afc0b72a6e6e381d6a60109e40f5acf485"
+source = "git+https://github.com/tearust/wascc-codec?branch=eth#a396cb04e4a3746fcab0680df931be4027868c5b"
 dependencies = [
  "log",
  "serde",

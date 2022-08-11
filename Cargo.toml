@@ -10,11 +10,11 @@ license = "Apache-2.0"
 documentation = "https://docs.rs/wascc-host"
 readme = "README.md"
 keywords = ["webassembly", "wasm", "wasi", "wascc", "wapc"]
-categories = ["wasm", "api-bindings","command-line-utilities"]
+categories = ["wasm", "api-bindings", "command-line-utilities"]
 exclude = ["examples/.assets"]
 
 [package.metadata.docs.rs]
-features = [ "manifest" ]
+features = ["manifest"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -38,11 +38,11 @@ envmnt = { version = "0.8.2", optional = true }
 
 structopt = { version = "0.3.14", optional = true }
 
-wapc = { git = "https://github.com/tearust/wapc-rust", branch = "nitro" }
-wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "nitro" }
+wapc = { git = "https://github.com/tearust/wapc-rust", branch = "eth" }
+wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "eth" }
 wascap = { git = "https://github.com/tearust/wascap", branch = "nitro" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
-tea-codec = { git = "https://github.com/tearust/tea-codec", branch = "dev" }
+tea-codec = { git = "https://github.com/tearust/tea-codec", branch = "eth" }
 
 [dev-dependencies]
 reqwest = { version = "0.10", features = ["blocking"] }
@@ -54,9 +54,7 @@ manifest = ["serde", "serde_yaml", "serde_json", "envmnt"]
 bin = ["structopt"]
 prometheus_middleware = ["prometheus", "hyper", "tokio"]
 static = []
-nitro = [
-    "static",
-]
+nitro = ["static"]
 
 [[bin]]
 name = "wascc-host"
