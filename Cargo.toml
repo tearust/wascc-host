@@ -38,11 +38,11 @@ envmnt = { version = "0.8.2", optional = true }
 
 structopt = { version = "0.3.14", optional = true }
 
-wapc = { git = "https://github.com/tearust/wapc-rust", branch = "eth" }
-wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "eth" }
+wapc = { git = "https://github.com/tearust/wapc-rust", branch = "vmh-async" }
+wascc-codec = { git = "https://github.com/tearust/wascc-codec", branch = "vmh-async" }
 wascap = { git = "https://github.com/tearust/wascap", branch = "nitro" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
-tea-codec = { git = "https://github.com/tearust/tea-codec", branch = "eth" }
+tea-codec = { git = "https://github.com/tearust/tea-codec", branch = "vmh-async" }
 
 [dev-dependencies]
 reqwest = { version = "0.10", features = ["blocking"] }
