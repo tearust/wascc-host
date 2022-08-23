@@ -2334,7 +2334,7 @@ checksum = "c02424087780c9b71cc96799eaeddff35af2bc513278cda5c99fc1f5d026d3c1"
 [[package]]
 name = "tea-codec"
 version = "0.1.1"
-source = "git+https://github.com/tearust/tea-codec?branch=vmh-async#147367a34582961dc25228bfc4a8bf7dcbdfcfb0"
+source = "git+https://github.com/tearust/tea-codec?branch=vmh-async#e0bb08e93df27f5a76871d1aa2666b615490e605"
 dependencies = [
  "anyhow",
  "base64",
@@ -2700,7 +2700,7 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wascc-codec?branch=vmh-async#0c08168ac90e866b380cbdc5f8c882bae8862dc6"
+source = "git+https://github.com/tearust/wascc-codec?branch=vmh-async#63871cbde35d05662a7fba2c8430411d6b1c384a"
 dependencies = [
  "log",
  "serde",
