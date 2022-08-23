@@ -51,9 +51,3 @@ pub struct CapabilityProvider(pub String);
 
 #[derive(Debug)]
 pub struct MiscHost(pub String);
-
-#[derive(Debug)]
-pub struct Plugin(pub libloading::Error);
-
-#[derive(Debug)]
-pub struct Middleware(String);
