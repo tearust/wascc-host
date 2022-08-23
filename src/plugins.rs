@@ -14,7 +14,7 @@
 
 use crate::capability::NativeCapability;
 use crate::dispatch::WasccNativeDispatcher;
-use crate::errors::{self, ErrorKind};
+use crate::error::{CapabilityProvider, MiscHost};
 use crate::inthost::Invocation;
 use crate::inthost::{InvocationResponse, InvocationTarget};
 use crate::{
@@ -40,15 +40,15 @@ impl PluginManager {
         match self.plugins.get(&key) {
             Some(p) => match p.plugin.configure_dispatch(Box::new(dispatcher)) {
                 Ok(_) => Ok(()),
-                Err(e) => Err(errors::new(ErrorKind::CapabilityProvider(format!(
+                Err(e) => Err(CapabilityProvider(format!(
                     "Failed to configure dispatch on provider: {:?}",
                     e
-                )))
+                ))
                 .into()),
             },
-            None => Err(errors::new(ErrorKind::CapabilityProvider(
+            None => Err(CapabilityProvider(
                 "attempt to register dispatcher for non-existent plugin".into(),
-            ))
+            )
             .into()),
         }
     }
@@ -71,28 +71,28 @@ impl PluginManager {
                     if let Some(entry) = router.read().unwrap().get_route(&binding, &capid) {
                         entry.invoke(inv.clone())
                     } else {
-                        Err(errors::new(ErrorKind::CapabilityProvider(format!(
+                        Err(CapabilityProvider(format!(
                             "No such capability ID registered as native plug-in or portable provider: {:?}",
                             route_key
-                        ))).into())
+                        )).into())
                     }
                 }
             }
         } else {
-            Err(errors::new(ErrorKind::MiscHost(
+            Err(MiscHost(
                 "Attempted to invoke a capability provider plugin as though it were an actor. Bad route?".into()
-            )).into())
+            ).into())
         }
     }
 
     pub fn add_plugin(&mut self, plugin: NativeCapability) -> Result<()> {
         let key = route_key(&plugin.binding_name, &plugin.id());
         if self.plugins.contains_key(&key) {
-            Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
+            Err(CapabilityProvider(format!(
                 "Duplicate capability ID attempted to register provider: ({},{})",
                 plugin.binding_name,
                 plugin.id()
-            )))
+            ))
             .into())
         } else {
             self.plugins.insert(key, plugin);

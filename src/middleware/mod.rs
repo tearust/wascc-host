@@ -48,7 +48,7 @@ pub(crate) fn invoke_capability(
 
     let r = match lock.call(router, &inv) {
         Ok(r) => r,
-        Err(e) => InvocationResponse::error(&inv, e),
+        Err(e) => InvocationResponse::error(&inv, e.into()),
     };
 
     match run_capability_post_invoke(r.clone(), &middlewares.read().unwrap()) {
@@ -76,10 +76,7 @@ pub(crate) fn invoke_actor(
 
     let inv_r = match guest.call(&inv.operation, &inv.msg) {
         Ok(v) => InvocationResponse::success(&inv, v),
-        Err(e) => InvocationResponse::error(
-            &inv,
-            crate::errors::new(crate::errors::ErrorKind::Wapc(e)).into(),
-        ),
+        Err(e) => InvocationResponse::error(&inv, e.into()),
     };
     let lock = middlewares.read().unwrap();
     match run_actor_post_invoke(inv_r.clone(), &lock) {

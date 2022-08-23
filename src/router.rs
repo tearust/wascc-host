@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::error::MiscHost;
 use crate::inthost::{Invocation, InvocationResponse};
-use crate::{errors, Result};
+use crate::Result;
 use crossbeam::{Receiver, Sender};
 use std::collections::HashMap;
 
@@ -91,10 +92,10 @@ impl Router {
             entry.terminate();
             Ok(())
         } else {
-            Err(errors::new(errors::ErrorKind::MiscHost(format!(
+            Err(MiscHost(format!(
                 "Failed to remove route - does not exist: {:?}",
                 key
-            )))
+            ))
             .into())
         }
     }

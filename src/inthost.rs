@@ -3,8 +3,12 @@
 use super::WasccHost;
 use crate::Result;
 
+use crate::error::{
+    ActorToActorCallNotExist, Authorization, CapabilityFailure, Error, HostCallFailure,
+    HotSwapFailure, MiscHost, UnauthorizedCapability, UnknownActor,
+};
 use crate::BindingsList;
-use crate::{authz, errors, middleware, router, Actor, NativeCapability};
+use crate::{authz, middleware, router, Actor, NativeCapability};
 use crate::{dispatch::WasccNativeDispatcher, plugins::PluginManager, Middleware};
 use crossbeam::{Receiver, Sender};
 use crossbeam_channel as channel;
@@ -13,7 +17,6 @@ use router::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use tea_codec::error::{new_wascc_error_code, TeaError, TeaResult, WasccCode};
 use uuid::Uuid;
 use wapc::prelude::*;
 use wascap::jwt::Claims;
@@ -74,6 +77,7 @@ impl WasccHost {
                         op,
                         payload,
                     )
+                    .map_err(Into::<_>::into)
                 },
                 &buf,
                 wasi,
@@ -243,24 +247,16 @@ impl WasccHost {
                                 InvocationTarget::Actor(tgt_actor) => {
                                     let tgt_claims = claims_map.read().unwrap().get(tgt_actor).cloned().unwrap();
                                     if !authz::can_invoke(&tgt_claims, &capid) {
-                                        InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
-                                            Some(format!(
-                                            "Dispatch between actor and unauthorized capability: {} <-> {}",
-                                            tgt_claims.subject, capid
-                                        )), None
-                                        ) )
+                                        InvocationResponse::error(inv, UnauthorizedCapability(tgt_claims.subject, capid.clone()).into())
                                     } else {
                                         match router.read().unwrap().get_route(ACTOR_BINDING, &tgt_actor) {
                                             Some(ref entry) => {
                                                 match entry.invoke(inv.clone()) {
                                                     Ok(ir) => ir,
-                                                    Err(e) => InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
-                                                        Some(format!(
-                                                        "Capability to actor call failure: {:?}", e)), None))
+                                                    Err(e) => InvocationResponse::error(inv, CapabilityFailure(e).into())
                                                 }
                                             }
-                                            None => InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
-                                                Some("Dispatch to unknown actor".to_owned()), None)),
+                                            None => InvocationResponse::error(inv, UnknownActor.into()),
                                         }
                                     }
                                 }
@@ -286,10 +282,8 @@ impl WasccHost {
 /// In the case of a portable capability provider, obtain its capability descriptor
 fn get_descriptor(host: &mut WapcHost) -> Result<CapabilityDescriptor> {
     let msg = wascc_codec::core::HealthRequest { placeholder: false }; // TODO: eventually support sending an empty slice for this
-    let res = host
-        .call(OP_GET_CAPABILITY_DESCRIPTOR, &serialize(&msg)?)
-        .map_err::<TeaError, _>(|e| e.into())?;
-    deserialize(&res)
+    let res = host.call(OP_GET_CAPABILITY_DESCRIPTOR, &serialize(&msg)?)?;
+    Ok(deserialize(&res)?)
 }
 
 pub(crate) fn remove_cap(
@@ -317,11 +311,7 @@ pub(crate) fn replace_actor(router: Arc<RwLock<Router>>, new_actor: Actor) -> Re
                 Err(e) => Err(e),
             }
         }
-        None => Err(errors::new(errors::ErrorKind::MiscHost(format!(
-            "Cannot replace non-existent actor: {}",
-            public_key
-        )))
-        .into()),
+        None => Err(MiscHost(format!("Cannot replace non-existent actor: {}", public_key)).into()),
     }
 }
 
@@ -344,11 +334,7 @@ fn live_update(guest: &mut WapcHost, inv: &Invocation) -> InvocationResponse {
         Ok(_) => InvocationResponse::success(inv, vec![]),
         Err(e) => {
             error!("Failed to perform hot swap, ignoring message: {:?}", e);
-            InvocationResponse::error(
-                inv,
-                new_wascc_error_code(WasccCode::InvocationError)
-                    .to_error_code(Some("Failed to perform hot swap".to_owned()), None),
-            )
+            InvocationResponse::error(inv, HotSwapFailure.into())
         }
     }
 }
@@ -447,7 +433,7 @@ impl Invocation {
 #[derive(Debug, Clone)]
 pub struct InvocationResponse {
     pub msg: Vec<u8>,
-    pub error: Option<TeaError>,
+    pub error: Option<Error>,
     pub invocation_id: String,
 }
 
@@ -460,7 +446,7 @@ impl InvocationResponse {
         }
     }
 
-    pub fn error(inv: &Invocation, err: TeaError) -> InvocationResponse {
+    pub fn error(inv: &Invocation, err: Error) -> InvocationResponse {
         InvocationResponse {
             msg: Vec::new(),
             error: Some(err),
@@ -485,17 +471,17 @@ fn host_callback(
     ns: &str,
     op: &str,
     payload: &[u8],
-) -> TeaResult<Vec<u8>> {
+) -> Result<Vec<u8>> {
     trace!("Guest {} invoking {}:{}", claims.subject, ns, op);
 
     let capability_id = ns;
     let inv = invocation_from_callback(&claims.subject, bd, ns, op, payload);
 
     if !authz::can_invoke(&claims, capability_id) {
-        return Err(errors::new(errors::ErrorKind::Authorization(format!(
+        return Err(Authorization(format!(
             "Actor {} does not have permission to communicate with {}",
             claims.subject, capability_id
-        )))
+        ))
         .into());
     }
     match &inv.target {
@@ -504,20 +490,19 @@ fn host_callback(
             match router.read().unwrap().get_route(ACTOR_BINDING, &subject) {
                 Some(entry) => match entry.invoke(inv.clone()) {
                     Ok(inv_r) => match inv_r.error {
-                        Some(err) => Err(err),
+                        Some(err) => Err(err.into()),
                         None => Ok(inv_r.msg),
                     },
-                    Err(e) => Err(errors::new(errors::ErrorKind::HostCallFailure(e.into())).into()),
+                    Err(e) => Err(HostCallFailure(e).into()),
                 },
-                None => Err(new_wascc_error_code(WasccCode::ActorToActorCallNotExist)
-                    .to_error_code(None, None)),
+                None => Err(ActorToActorCallNotExist.into()),
             }
         }
         InvocationTarget::Capability { .. } => {
             // This is a standard actor-to-host call
             match middleware::invoke_capability(middlewares, plugins.clone(), router, inv.clone()) {
                 Ok(inv_r) => match inv_r.error {
-                    Some(err) => Err(err),
+                    Some(err) => Err(err.into()),
                     None => Ok(inv_r.msg),
                 },
                 Err(e) => Err(e.into()),

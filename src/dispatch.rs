@@ -14,7 +14,7 @@
 
 use crate::inthost::{Invocation, InvocationResponse, InvocationTarget};
 use crossbeam_channel::{Receiver, Sender};
-use tea_codec::error::{new_common_error_code, CommonCode, TeaResult};
+use tea_codec::error::{new_common_error_code, CommonCode};
 use wascc_codec::capabilities::Dispatcher;
 
 /// A dispatcher is given to each capability provider, allowing it to send
@@ -43,7 +43,7 @@ impl WasccNativeDispatcher {
 
 impl Dispatcher for WasccNativeDispatcher {
     /// Called by a capability provider to invoke a function on an actor
-    fn dispatch(&self, actor: &str, op: &str, msg: &[u8]) -> TeaResult<Vec<u8>> {
+    fn dispatch(&self, actor: &str, op: &str, msg: &[u8]) -> wascc_codec::error::Result<Vec<u8>> {
         trace!(
             "Dispatching operation '{}' ({} bytes) to actor",
             op,
@@ -62,11 +62,10 @@ impl Dispatcher for WasccNativeDispatcher {
         let resp = self.resp_r.recv();
         match resp {
             Ok(r) => match r.error {
-                Some(e) => Err(e),
+                Some(e) => Err(e.into()),
                 None => Ok(r.msg),
             },
-            Err(e) => Err(new_common_error_code(CommonCode::ChannelReceiveError)
-                .to_error_code(Some(format!("{:?}", e)), None)),
+            Err(e) => Err(e.into()),
         }
     }
 }

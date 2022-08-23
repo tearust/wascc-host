@@ -1,8 +1,9 @@
 use crate::dispatch::WasccNativeDispatcher;
+use crate::error::{CapabilityProvider, NativeHostCannotBeActor};
 use crate::plugins::PluginManager;
 use crate::router::Router;
 use crate::{
-    errors, middleware, router, Invocation, InvocationResponse, InvocationTarget, Middleware,
+    middleware, router, Invocation, InvocationResponse, InvocationTarget, Middleware,
     NativeCapability, Result,
 };
 use crossbeam::channel;
@@ -11,7 +12,6 @@ use crossbeam_utils::sync::WaitGroup;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use tea_codec::error::{new_wascc_error_code, WasccCode};
 use wascc_codec::capabilities::CapabilityDescriptor;
 
 #[derive(Clone)]
@@ -42,9 +42,9 @@ impl NativeHost {
             .unwrap()
             .route_exists(&capability.binding_name, &capability.id())
         {
-            return Err(errors::new(errors::ErrorKind::CapabilityProvider(format!(
+            return Err(CapabilityProvider(format!(
                 "Capability provider {} cannot be bound to the same name ({}) twice, loading failed.", capid, capability.binding_name
-            ))).into());
+            )).into());
         }
         self.caps.write().unwrap().insert(
             (
@@ -104,9 +104,7 @@ impl NativeHost {
                                 },
                                 InvocationTarget::Actor(_) => {
                                    error!("## invocation target is actor");
-                                   InvocationResponse::error(inv, new_wascc_error_code(WasccCode::InvocationError).to_error_code(
-                                       Some("invocation target of native host can't be actor".to_owned()), None
-                                   ))
+                                   InvocationResponse::error(inv, NativeHostCannotBeActor.into())
                                 }
                             };
                             resp_s.send(inv_r).unwrap();

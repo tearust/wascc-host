@@ -339,9 +339,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1079fb8528d9f9c888b1e8aa651e6e079ade467323d58f75faf1d30b1808f540"
+checksum = "dc948ebb96241bb40ab73effeb80d9f93afaad49359d159a5e61be51619fe813"
 dependencies = [
  "libc",
 ]
@@ -2334,7 +2334,7 @@ checksum = "c02424087780c9b71cc96799eaeddff35af2bc513278cda5c99fc1f5d026d3c1"
 [[package]]
 name = "tea-codec"
 version = "0.1.1"
-source = "git+https://github.com/tearust/tea-codec?branch=vmh-async#75fc36c3e5360db9cb804a5008dfff8df5942277"
+source = "git+https://github.com/tearust/tea-codec?branch=vmh-async#147367a34582961dc25228bfc4a8bf7dcbdfcfb0"
 dependencies = [
  "anyhow",
  "base64",
@@ -2662,7 +2662,7 @@ dependencies = [
 [[package]]
 name = "wapc"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wapc-rust?branch=vmh-async#64c08b44b701dabdeac58417944361734b247c28"
+source = "git+https://github.com/tearust/wapc-rust?branch=vmh-async#05fc489d5a1ca9c14db0047d5353917f206d68be"
 dependencies = [
  "anyhow",
  "env_logger 0.7.1",
@@ -2700,7 +2700,7 @@ dependencies = [
 [[package]]
 name = "wascc-codec"
 version = "0.7.2"
-source = "git+https://github.com/tearust/wascc-codec?branch=vmh-async#7646009174b8bae703fa4baaed54e459d9d8b3a3"
+source = "git+https://github.com/tearust/wascc-codec?branch=vmh-async#0c08168ac90e866b380cbdc5f8c882bae8862dc6"
 dependencies = [
  "log",
  "serde",

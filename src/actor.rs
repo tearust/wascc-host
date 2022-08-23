@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::authz;
 use crate::Result;
-use crate::{authz, errors};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use tea_codec::error::TeaError;
 use wascap::jwt::Token;
 
 /// An actor is a WebAssembly module that conforms to the waSCC protocols and can securely
@@ -38,11 +37,9 @@ impl Actor {
 
     /// Create an actor from a signed WebAssembly (`.wasm`) file
     pub fn from_file(path: impl AsRef<Path>) -> Result<Actor> {
-        let mut file = File::open(path)
-            .map_err::<TeaError, _>(|e| errors::new(errors::ErrorKind::IO(e)).into())?;
+        let mut file = File::open(path)?;
         let mut buf = Vec::new();
-        file.read_to_end(&mut buf)
-            .map_err::<TeaError, _>(|e| errors::new(errors::ErrorKind::IO(e)).into())?;
+        file.read_to_end(&mut buf)?;
 
         Actor::from_bytes(buf)
     }
