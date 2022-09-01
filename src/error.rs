@@ -1,15 +1,15 @@
-use tea_codec::{define_scope, errorx::single};
+use tea_codec::define_scope;
 use wascc_codec::error::WasccCodec;
 
 define_scope! {
     WasccHost: WasccCodec {
         wascap::Error => Wascap, "Embedded JWT Failure", @Debug;
         UnauthorizedCapability as v => UnauthorizedCapability, format!("Dispatch between actor and unauthorized capability: {} <-> {}", v.0, v.1), @Debug;
-        CapabilityFailure as v => CapabilityFailure, v.0.to_string(), @Debug, single(&v.0);
+        CapabilityFailure as v => CapabilityFailure, v.0.to_string(), @Debug, [&v.0];
         UnknownActor => UnknownActor, "Trying to call an unknown actor";
         HotSwapFailure => HotSwapFailure, "Failed to perform hot swap";
         ActorToActorCallNotExist => ActorToActorCallNotExist, "Attempted actor-to-actor call to non-existent target", @Debug;
-        HostCallFailure as v=> HostCallFailure, v.0.to_string(), @Debug, single(&v.0);
+        HostCallFailure as v=> HostCallFailure, v.0.to_string(), @Debug, [&v.0];
         BadDispatch => BadDispatch, "Bad dispatch";
         NativeHostCannotBeActor => NativeHostCannotBeActor, "Invocation target of native host can't be actor";
         Authorization as v => Authorization, v.0.as_str();
